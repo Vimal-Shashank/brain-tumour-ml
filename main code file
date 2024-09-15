@@ -1,0 +1,51 @@
+close all;
+clear all;
+clc;
+
+% Load the MRI image
+img = imread('brain_mri.jpg'); % Ensure the correct file name
+grayImg = rgb2gray(img);
+
+% Convert to binary image
+bw = im2bw(grayImg, 0.7);
+
+% Label connected components
+label = bwlabel(bw);
+
+% Measure properties of image regions
+stats = regionprops(label, 'Solidity', 'Area');
+density = [stats.Solidity];
+area = [stats.Area];
+
+% Find high-density areas
+high_dense_area = density > 0.5;
+max_area = max(area(high_dense_area));
+tumor_label = find(area == max_area);
+
+% Create a binary image of the tumor
+tumor = ismember(label, tumor_label);
+
+% Dilate the tumor area
+se = strel('square', 5);
+tumor = imdilate(tumor, se);
+
+% Display the results
+figure;
+subplot(1, 3, 1);
+imshow(img, []);
+title('Brain');
+
+subplot(1, 3, 2);
+imshow(tumor, []);
+title('Tumor Alone');
+
+% Overlay the detected tumor boundaries on the original image
+[B, L] = bwboundaries(tumor, 'noholes');
+subplot(1, 3, 3);
+imshow(img, []);
+hold on;
+for i = 1:length(B)
+    plot(B{i}(:,2), B{i}(:,1), 'y', 'linewidth', 1.45);
+end
+title('Detected Tumor');
+hold off;
